@@ -25,7 +25,7 @@
                     </svg>
                     西北-牆壁裂縫自動分析儀
                 </h1>
-                <p class="text-red-100 text-xs mt-1 opacity-90">西北好用心  住戶更安心</p>
+                <p class="text-red-100 text-xs mt-1 opacity-90">西北好用心 住戶更安心</p>
             </div>
             <button id="share-btn" class="p-2 bg-red-700 hover:bg-red-800 rounded-full transition-colors shadow-inner" title="分享至 LINE">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,7 +69,7 @@
                         <button id="open-camera-btn" class="bg-red-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-red-200 active:scale-95 transition-transform">
                             開啟相機拍攝
                         </button>
-                        <p class="text-xs text-gray-400 mt-4 px-4 leading-relaxed">影像將自動優化並存於您的瀏覽器空間中</p>
+                        <p class="text-xs text-gray-400 mt-4 px-4 leading-relaxed">請確保金鑰正確且網路暢通</p>
                     </div>
                 </div>
 
@@ -77,6 +77,7 @@
                     AI 深度分析並儲存
                 </button>
 
+                <!-- Status Message with detailed error support -->
                 <div id="status-msg" class="mt-4 text-center text-sm font-medium hidden"></div>
 
                 <div id="result-card" class="mt-6 bg-white rounded-2xl shadow-md p-6 hidden border border-red-50">
@@ -161,7 +162,7 @@
         </main>
 
         <footer class="p-4 bg-gray-50 border-t border-gray-100 text-center">
-            <p class="text-[10px] text-gray-400">© 2024 結構安全 AI 分析系統 | 僅供裝置本地參考</p>
+            <p class="text-[10px] text-gray-400">© 2024 結構安全 AI 分析系統 | 僅供本地參考</p>
         </footer>
     </div>
 
@@ -206,7 +207,7 @@
             window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text + "\n" + url)}`, '_blank');
         };
 
-        // --- 分頁切換 (純 JS 無 Firebase 依賴) ---
+        // --- 分頁切換 ---
         function switchTab(target) {
             [tabDetect, tabHistory, tabStandards].forEach(t => {
                 t.classList.remove('active-tab', 'text-red-600');
@@ -220,7 +221,7 @@
             } else if (target === 'history') {
                 tabHistory.classList.add('active-tab', 'text-red-600');
                 viewHistory.classList.remove('hidden');
-                loadHistory(); // 切換時刷新列表
+                loadHistory(); 
             } else if (target === 'standards') {
                 tabStandards.classList.add('active-tab', 'text-red-600');
                 viewStandards.classList.remove('hidden');
@@ -230,8 +231,8 @@
         tabHistory.onclick = () => switchTab('history');
         tabStandards.onclick = () => switchTab('standards');
 
-        // --- 圖片壓縮 (重要：節省 localStorage 空間) ---
-        async function compressImage(base64Str, maxWidth = 600) {
+        // --- 圖片壓縮 ---
+        async function compressImage(base64Str, maxWidth = 800) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.src = "data:image/png;base64," + base64Str;
@@ -247,8 +248,7 @@
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    // 為了節省空間，改用 JPEG 格式並壓縮品質
-                    resolve(canvas.toDataURL('image/jpeg', 0.5).split(',')[1]);
+                    resolve(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]);
                 };
             });
         }
@@ -273,7 +273,7 @@
             reader.readAsDataURL(file);
         };
 
-        // --- AI 分析與存檔 (localStorage) ---
+        // --- AI 分析與存檔 ---
         analyzeBtn.onclick = async () => {
             if (!base64Image) return;
             
@@ -285,7 +285,7 @@
                 // 1. 壓縮圖片
                 const compressedBase64 = await compressImage(base64Image);
 
-                const prompt = `你是一位專業結構技師。請分析這張照片中的裂縫並回傳 JSON 格式結果：
+                const prompt = `你是一位專業結構技師。請詳細分析這張照片中的牆壁裂縫並回傳 JSON 格式結果（請勿包含 Markdown 標記，直接回傳 JSON）：
                 {
                     "length": "數字公分",
                     "width": "數字公釐",
@@ -294,22 +294,36 @@
                     "suggestion": "詳細的專業處置建議"
                 }`;
 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                // 修正模型名稱為 gemini-1.5-flash (大多數金鑰適用的穩定版本)
+                const modelId = "gemini-1.5-flash";
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "請分析此裂縫。" }, { inlineData: { mimeType: "image/jpeg", data: compressedBase64 } }] }],
+                        contents: [{ parts: [{ text: "請分析此裂縫影像。" }, { inlineData: { mimeType: "image/jpeg", data: compressedBase64 } }] }],
                         systemInstruction: { parts: [{ text: prompt }] },
-                        generationConfig: { responseMimeType: "application/json" }
+                        generationConfig: { 
+                            responseMimeType: "application/json",
+                            temperature: 0.4
+                        }
                     })
                 });
 
-                if (!response.ok) throw new Error("AI 服務暫時無法回應");
-
                 const data = await response.json();
-                const result = JSON.parse(data.candidates[0].content.parts[0].text);
+
+                if (!response.ok) {
+                    const errorDetail = data.error?.message || "原因不明";
+                    throw new Error(`API 報錯: ${errorDetail}`);
+                }
+
+                if (!data.candidates || data.candidates.length === 0) {
+                    throw new Error("AI 無法產生內容，請換個角度拍攝。");
+                }
+
+                const resultText = data.candidates[0].content.parts[0].text;
+                const result = JSON.parse(resultText);
                 
                 // 2. 存入本地 LocalStorage
                 saveToLocal({ 
@@ -320,8 +334,8 @@
                 
                 displayResult(result);
             } catch (error) {
-                showStatus("分析發生錯誤，請檢查網路連線或金鑰是否正確。", "text-red-500");
-                console.error(error);
+                console.error("Analysis Error:", error);
+                showStatus(`分析失敗: ${error.message}<br><span class="text-[10px] opacity-50">請檢查金鑰權限或網路狀態</span>`, "text-red-500");
             } finally {
                 analyzeBtn.disabled = false;
                 analyzeBtn.innerText = "開始 AI 自動分析";
@@ -331,8 +345,7 @@
         // --- 本地儲存邏輯 ---
         function saveToLocal(record) {
             let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            history.unshift(record); // 新紀錄放在最前面
-            // 限制紀錄數量為 20 筆，避免 localStorage 爆滿
+            history.unshift(record); 
             if (history.length > 20) history = history.slice(0, 20);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         }
