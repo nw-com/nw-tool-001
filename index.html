@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>西北-牆壁裂縫自動分析儀</title>
+    <title>牆壁裂縫自動分析儀 - 專業紅版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js" type="module"></script>
@@ -172,18 +172,22 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Config
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'wall-crack-app-img';
+        // 環境變數防錯解析
+        let firebaseConfig = null;
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        } catch (e) {
+            console.warn("無法解析 Firebase 設定，雲端功能將停用。");
+        }
 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'wall-crack-app-img';
         const apiKey = ""; 
+
+        let db, auth;
         let user = null;
         let base64Image = "";
 
-        // UI Elements
+        // UI 元素
         const fileInput = document.getElementById('file-input');
         const openCameraBtn = document.getElementById('open-camera-btn');
         const previewContainer = document.getElementById('preview-container');
@@ -203,42 +207,53 @@
         const historyList = document.getElementById('history-list');
         const historyEmpty = document.getElementById('history-empty');
 
-        // --- AUTH ---
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-        initAuth();
+        // --- 初始化 Firebase (僅在環境變數存在時) ---
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
 
-        onAuthStateChanged(auth, (u) => {
-            user = u;
-            if (user) setupHistoryListener();
-        });
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+            initAuth();
 
-        // --- SHARE ---
+            onAuthStateChanged(auth, (u) => {
+                user = u;
+                if (user) setupHistoryListener();
+            });
+        }
+
+        // --- 分享邏輯 ---
         shareBtn.onclick = () => {
             const text = "我正在使用【牆壁裂縫自動分析儀】記錄居家結構安全！";
             const url = window.location.href;
             window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text + "\n" + url)}`, '_blank');
         };
 
-        // --- TABS ---
+        // --- 分頁邏輯 (獨立執行，確保分頁必可用) ---
         function switchTab(target) {
-            [tabDetect, tabHistory, tabStandards].forEach(t => t.classList.remove('active-tab', 'text-red-600'));
-            [tabDetect, tabHistory, tabStandards].forEach(t => t.classList.add('text-gray-500'));
+            [tabDetect, tabHistory, tabStandards].forEach(t => {
+                t.classList.remove('active-tab');
+                t.classList.add('text-gray-500');
+            });
             [viewDetect, viewHistory, viewStandards].forEach(v => v.classList.add('hidden'));
 
             if (target === 'detect') {
                 tabDetect.classList.add('active-tab');
+                tabDetect.classList.remove('text-gray-500');
                 viewDetect.classList.remove('hidden');
             } else if (target === 'history') {
                 tabHistory.classList.add('active-tab');
+                tabHistory.classList.remove('text-gray-500');
                 viewHistory.classList.remove('hidden');
             } else if (target === 'standards') {
                 tabStandards.classList.add('active-tab');
+                tabStandards.classList.remove('text-gray-500');
                 viewStandards.classList.remove('hidden');
             }
         }
@@ -246,7 +261,7 @@
         tabHistory.onclick = () => switchTab('history');
         tabStandards.onclick = () => switchTab('standards');
 
-        // --- CAMERA ---
+        // --- 相機/上傳邏輯 ---
         openCameraBtn.onclick = () => fileInput.click();
         reUploadBtn.onclick = () => fileInput.click();
 
@@ -266,12 +281,13 @@
             reader.readAsDataURL(file);
         };
 
-        // --- AI ---
+        // --- AI 分析邏輯 ---
         analyzeBtn.onclick = async () => {
-            if (!base64Image || !user) return;
-            showStatus("AI 正在分析影像並上傳紀錄...", "text-red-600");
+            if (!base64Image) return;
+            
+            showStatus("AI 正在分析影像中...", "text-red-600");
             analyzeBtn.disabled = true;
-            analyzeBtn.innerText = "正在儲存影像與報告...";
+            analyzeBtn.innerText = "分析處理中...";
 
             const prompt = `你是一位專業結構技師。分析照片中的牆壁裂縫並回傳 JSON：
             {
@@ -295,11 +311,17 @@
                 const data = await response.json();
                 const result = JSON.parse(data.candidates[0].content.parts[0].text);
                 
-                // 將 base64Image 也存進 Firestore
-                await saveRecord({ ...result, imageData: base64Image });
+                // 僅在資料庫可用時儲存
+                if (db && user) {
+                    await saveRecord({ ...result, imageData: base64Image });
+                } else {
+                    console.log("儲存跳過：無資料庫設定。");
+                }
+                
                 displayResult(result);
             } catch (error) {
-                showStatus("發生錯誤，請重新再試。", "text-red-500");
+                showStatus("分析發生錯誤，請稍後再試。", "text-red-500");
+                console.error(error);
             } finally {
                 analyzeBtn.disabled = false;
                 analyzeBtn.innerText = "開始 AI 自動分析";
@@ -307,13 +329,13 @@
         };
 
         async function saveRecord(data) {
-            if (!user) return;
+            if (!db || !user) return;
             const ref = collection(db, 'artifacts', appId, 'users', user.uid, 'history');
             await addDoc(ref, { ...data, timestamp: serverTimestamp() });
         }
 
         function setupHistoryListener() {
-            if (!user) return;
+            if (!db || !user) return;
             const q = collection(db, 'artifacts', appId, 'users', user.uid, 'history');
             onSnapshot(q, (snapshot) => {
                 const docs = [];
@@ -339,7 +361,6 @@
                     green: 'text-green-600 bg-green-50 border-green-200'
                 };
                 const colorClass = colorMap[doc.grade_color] || colorMap.yellow;
-                // 檢查是否有圖片資料
                 const imgHtml = doc.imageData 
                     ? `<img src="data:image/png;base64,${doc.imageData}" class="history-img rounded-t-xl" alt="裂縫紀錄">`
                     : `<div class="h-20 bg-gray-100 flex items-center justify-center text-xs text-gray-400 rounded-t-xl">無影像資料</div>`;
