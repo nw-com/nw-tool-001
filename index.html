@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>西北-牆壁裂縫自動分析儀V1.3</title>
+    <title>西北-牆壁裂縫自動分析儀V1.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #dc2626; color: #dc2626; }
@@ -25,7 +25,7 @@
                     </svg>
                     西北-牆壁裂縫自動分析儀
                 </h1>
-                <p class="text-red-100 text-xs mt-1 opacity-90">西北好用心 住戶更安心</p>
+                <p class="text-red-100 text-xs mt-1 opacity-90">V1.4    西北好用心 住戶更安心</p>
             </div>
             <button id="share-btn" class="p-2 bg-red-700 hover:bg-red-800 rounded-full transition-colors shadow-inner" title="分享至 LINE">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,7 +176,6 @@
 
         let base64Image = "";
 
-        // UI Elements
         const fileInput = document.getElementById('file-input');
         const openCameraBtn = document.getElementById('open-camera-btn');
         const previewContainer = document.getElementById('preview-container');
@@ -201,7 +200,7 @@
         window.onload = () => { loadHistory(); };
 
         shareBtn.onclick = () => {
-            const text = "我正在使用【西北-牆壁裂縫分析儀】檢查居家安全，這是一個專業的 AI 檢測工具！";
+            const text = "我正在使用【西北-牆壁裂縫分析儀】檢查居家安全，推薦妳試試！";
             const url = window.location.href;
             window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text + "\n" + url)}`, '_blank');
         };
@@ -279,7 +278,7 @@
             try {
                 const compressedBase64 = await compressImage(base64Image);
 
-                const prompt = `你是一位專業結構技師。請詳細分析這張照片中的牆壁裂縫並回傳 JSON 格式結果（請勿包含 Markdown 標記，直接回傳 JSON 內容）：
+                const prompt = `你是一位專業結構技師。請詳細分析這張照片中的牆壁裂縫並回傳 JSON 格式結果（請勿包含 Markdown 標記，直接回傳 JSON）：
                 {
                     "length": "數字公分",
                     "width": "數字公釐",
@@ -288,9 +287,9 @@
                     "suggestion": "詳細的專業處置建議"
                 }`;
 
-                // 修復關鍵：使用 v1beta 並將參數改為蛇形命名法 (snake_case)
+                // 修正：使用 v1 穩定版本端點
                 const modelId = "gemini-1.5-flash";
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -307,7 +306,7 @@
                         },
                         generation_config: { 
                             response_mime_type: "application/json",
-                            temperature: 0.2
+                            temperature: 0.1
                         }
                     })
                 });
@@ -320,7 +319,7 @@
                 }
 
                 if (!data.candidates || data.candidates.length === 0) {
-                    throw new Error("AI 無法分析此影像，請換個角度或靠近一點拍攝。");
+                    throw new Error("AI 無法分析此影像。");
                 }
 
                 const resultText = data.candidates[0].content.parts[0].text;
@@ -335,7 +334,7 @@
                 displayResult(result);
             } catch (error) {
                 console.error("Analysis Error:", error);
-                showStatus(`分析失敗: ${error.message}<br><span class="text-[10px] opacity-50">請嘗試重新拍照或確認網路</span>`, "text-red-500");
+                showStatus(`分析失敗: ${error.message}`, "text-red-500");
             } finally {
                 analyzeBtn.disabled = false;
                 analyzeBtn.innerText = "重新分析";
@@ -383,7 +382,6 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
-                        
                         <img src="data:image/jpeg;base64,${item.imageData}" class="history-img rounded-t-xl">
                         <div class="p-4">
                             <div class="flex justify-between items-start mb-2">
