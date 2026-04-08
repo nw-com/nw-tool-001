@@ -368,6 +368,16 @@
         let db = null;
         let firebaseReady = false;
 
+        const firebaseConfigFromCode = {
+            apiKey: "AIzaSyAAZacSxZZoByUfKaK_mUkb_3jKP9Rkkp0",
+            authDomain: "nw-tool-001.firebaseapp.com",
+            projectId: "nw-tool-001",
+            storageBucket: "nw-tool-001.firebasestorage.app",
+            messagingSenderId: "17130565734",
+            appId: "1:17130565734:web:8a36db9bea4e6608057da7",
+            measurementId: "G-DSWKLLTFBN"
+        };
+
         const parseFirebaseConfig = (raw) => {
             if (!raw) return null;
             if (typeof raw === 'object') return raw;
@@ -394,14 +404,7 @@
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 firebaseConfigRaw = __firebase_config;
             } else {
-                firebaseConfigRaw = localStorage.getItem('firebase_config');
-                if (!firebaseConfigRaw) {
-                    const entered = window.prompt('請貼上 Firebase config（JSON 或 const firebaseConfig = {...}）');
-                    if (entered) {
-                        localStorage.setItem('firebase_config', entered);
-                        firebaseConfigRaw = entered;
-                    }
-                }
+                firebaseConfigRaw = firebaseConfigFromCode;
             }
 
             const firebaseConfig = parseFirebaseConfig(firebaseConfigRaw);
