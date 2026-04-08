@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>西北-牆壁裂縫自動分析儀</title>
+    <title>西北-牆壁裂縫自動分析儀V1.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #dc2626; color: #dc2626; }
@@ -23,7 +23,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
-                    西北-牆壁裂縫自動分析儀V1.1
+                    西北-牆壁裂縫自動分析儀
                 </h1>
                 <p class="text-red-100 text-xs mt-1 opacity-90">西北好用心 住戶更安心</p>
             </div>
@@ -69,15 +69,14 @@
                         <button id="open-camera-btn" class="bg-red-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-red-200 active:scale-95 transition-transform">
                             開啟相機拍攝
                         </button>
-                        <p class="text-xs text-gray-400 mt-4 px-4 leading-relaxed">請確保金鑰正確且網路暢通</p>
+                        <p class="text-xs text-gray-400 mt-4 px-4 leading-relaxed">西北用心，檢測安心</p>
                     </div>
                 </div>
 
                 <button id="analyze-btn" class="w-full bg-gray-800 text-white font-bold py-4 rounded-xl mt-6 shadow-lg active:scale-95 transition-all hidden">
-                    AI 深度分析並儲存
+                    開始 AI 自動分析
                 </button>
 
-                <!-- Status Message with detailed error support -->
                 <div id="status-msg" class="mt-4 text-center text-sm font-medium hidden"></div>
 
                 <div id="result-card" class="mt-6 bg-white rounded-2xl shadow-md p-6 hidden border border-red-50">
@@ -106,7 +105,12 @@
             <div id="view-history" class="hidden">
                 <div class="flex justify-between items-center mb-4 px-2">
                     <h3 class="font-bold text-gray-500 text-sm">歷史檢測紀錄</h3>
-                    <button id="clear-history-btn" class="text-xs text-red-400 hover:text-red-600">清除全部</button>
+                    <button id="clear-history-btn" class="text-xs text-red-400 hover:text-red-600 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        全部刪除
+                    </button>
                 </div>
                 <div id="history-empty" class="text-center py-20 text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -162,18 +166,17 @@
         </main>
 
         <footer class="p-4 bg-gray-50 border-t border-gray-100 text-center">
-            <p class="text-[10px] text-gray-400">© 2024 結構安全 AI 分析系統 | 僅供本地參考</p>
+            <p class="text-[10px] text-gray-400">© 2024 西北結構安全分析 | 本地儲存保護隱私</p>
         </footer>
     </div>
 
     <script>
-        // 設定金鑰與 ID
         const apiKey = "AIzaSyAI_SUhJLAG1GjdxIjwgUAWqqHVPaz_CM0"; 
-        const STORAGE_KEY = 'crack_history_records';
+        const STORAGE_KEY = 'crack_history_records_v1';
 
         let base64Image = "";
 
-        // UI 元素
+        // UI Elements
         const fileInput = document.getElementById('file-input');
         const openCameraBtn = document.getElementById('open-camera-btn');
         const previewContainer = document.getElementById('preview-container');
@@ -195,19 +198,14 @@
         const historyList = document.getElementById('history-list');
         const historyEmpty = document.getElementById('history-empty');
 
-        // --- 初始化頁面 ---
-        window.onload = () => {
-            loadHistory();
-        };
+        window.onload = () => { loadHistory(); };
 
-        // --- LINE 分享 ---
         shareBtn.onclick = () => {
-            const text = "我正在使用【牆壁裂縫分析儀】檢查居家安全，這是一個免安裝的本地 AI 工具，推薦妳試試！";
+            const text = "我正在使用【西北-牆壁裂縫分析儀】檢查居家安全，這是一個專業的 AI 檢測工具！";
             const url = window.location.href;
             window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text + "\n" + url)}`, '_blank');
         };
 
-        // --- 分頁切換 ---
         function switchTab(target) {
             [tabDetect, tabHistory, tabStandards].forEach(t => {
                 t.classList.remove('active-tab', 'text-red-600');
@@ -231,7 +229,6 @@
         tabHistory.onclick = () => switchTab('history');
         tabStandards.onclick = () => switchTab('standards');
 
-        // --- 圖片壓縮 ---
         async function compressImage(base64Str, maxWidth = 800) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -253,7 +250,6 @@
             });
         }
 
-        // --- 拍照與讀取 ---
         openCameraBtn.onclick = () => fileInput.click();
         reUploadBtn.onclick = () => fileInput.click();
 
@@ -273,19 +269,17 @@
             reader.readAsDataURL(file);
         };
 
-        // --- AI 分析與存檔 ---
         analyzeBtn.onclick = async () => {
             if (!base64Image) return;
             
-            showStatus("AI 正在進行影像特徵辨識", "text-red-600 loading-dots");
+            showStatus("AI 正在深度分析裂縫結構", "text-red-600 loading-dots");
             analyzeBtn.disabled = true;
-            analyzeBtn.innerText = "分析處理中...";
+            analyzeBtn.innerText = "分析中...";
 
             try {
-                // 1. 壓縮圖片
                 const compressedBase64 = await compressImage(base64Image);
 
-                const prompt = `你是一位專業結構技師。請詳細分析這張照片中的牆壁裂縫並回傳 JSON 格式結果（請勿包含 Markdown 標記，直接回傳 JSON）：
+                const prompt = `你是一位專業結構技師。請詳細分析這張照片中的牆壁裂縫並回傳 JSON 格式結果（請勿包含 Markdown 標記，直接回傳 JSON 內容）：
                 {
                     "length": "數字公分",
                     "width": "數字公釐",
@@ -294,19 +288,19 @@
                     "suggestion": "詳細的專業處置建議"
                 }`;
 
-                // 修正模型名稱為 gemini-1.5-flash (大多數金鑰適用的穩定版本)
+                // 修復關鍵：改用 v1 穩定版端點
                 const modelId = "gemini-1.5-flash";
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "請分析此裂縫影像。" }, { inlineData: { mimeType: "image/jpeg", data: compressedBase64 } }] }],
+                        contents: [{ parts: [{ text: "請分析此影像中的牆壁裂縫。" }, { inlineData: { mimeType: "image/jpeg", data: compressedBase64 } }] }],
                         systemInstruction: { parts: [{ text: prompt }] },
                         generationConfig: { 
                             responseMimeType: "application/json",
-                            temperature: 0.4
+                            temperature: 0.2
                         }
                     })
                 });
@@ -319,13 +313,12 @@
                 }
 
                 if (!data.candidates || data.candidates.length === 0) {
-                    throw new Error("AI 無法產生內容，請換個角度拍攝。");
+                    throw new Error("AI 無法分析此影像，請換個角度或靠近一點拍攝。");
                 }
 
                 const resultText = data.candidates[0].content.parts[0].text;
                 const result = JSON.parse(resultText);
                 
-                // 2. 存入本地 LocalStorage
                 saveToLocal({ 
                     ...result, 
                     imageData: compressedBase64,
@@ -335,20 +328,28 @@
                 displayResult(result);
             } catch (error) {
                 console.error("Analysis Error:", error);
-                showStatus(`分析失敗: ${error.message}<br><span class="text-[10px] opacity-50">請檢查金鑰權限或網路狀態</span>`, "text-red-500");
+                showStatus(`分析失敗: ${error.message}<br><span class="text-[10px] opacity-50">請嘗試重新拍照或確認網路</span>`, "text-red-500");
             } finally {
                 analyzeBtn.disabled = false;
-                analyzeBtn.innerText = "開始 AI 自動分析";
+                analyzeBtn.innerText = "重新分析";
             }
         };
 
-        // --- 本地儲存邏輯 ---
         function saveToLocal(record) {
             let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             history.unshift(record); 
             if (history.length > 20) history = history.slice(0, 20);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         }
+
+        window.deleteSingleRecord = (index) => {
+            if (confirm("確定要刪除這筆紀錄嗎？")) {
+                let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                history.splice(index, 1);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+                loadHistory();
+            }
+        };
 
         function loadHistory() {
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -359,7 +360,7 @@
             }
             historyEmpty.classList.add('hidden');
             
-            historyList.innerHTML = history.map(item => {
+            historyList.innerHTML = history.map((item, index) => {
                 const colorMap = {
                     red: 'text-red-600 bg-red-50 border-red-200',
                     orange: 'text-orange-600 bg-orange-50 border-orange-200',
@@ -369,7 +370,13 @@
                 const colorClass = colorMap[item.grade_color] || colorMap.yellow;
                 
                 return `
-                    <div class="bg-white border rounded-xl shadow-sm overflow-hidden border-gray-200">
+                    <div class="bg-white border rounded-xl shadow-sm overflow-hidden border-gray-200 relative group">
+                        <button onclick="deleteSingleRecord(${index})" class="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur rounded-full text-red-500 shadow-sm hover:bg-red-50 transition-all z-20 border border-red-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        
                         <img src="data:image/jpeg;base64,${item.imageData}" class="history-img rounded-t-xl">
                         <div class="p-4">
                             <div class="flex justify-between items-start mb-2">
@@ -390,13 +397,12 @@
         }
 
         clearHistoryBtn.onclick = () => {
-            if (confirm("確定要清除所有本地歷史紀錄嗎？")) {
+            if (confirm("確定要清除【所有】歷史紀錄嗎？")) {
                 localStorage.removeItem(STORAGE_KEY);
                 loadHistory();
             }
         };
 
-        // --- UI 工具 ---
         function displayResult(result) {
             statusMsg.classList.add('hidden');
             resultCard.classList.remove('hidden');
