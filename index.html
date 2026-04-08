@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>西北-牆壁裂縫自動分析儀V1.2</title>
+    <title>西北-牆壁裂縫自動分析儀V1.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active-tab { border-bottom: 3px solid #dc2626; color: #dc2626; }
@@ -288,18 +288,25 @@
                     "suggestion": "詳細的專業處置建議"
                 }`;
 
-                // 修復關鍵：改用 v1 穩定版端點
+                // 修復關鍵：使用 v1beta 並將參數改為蛇形命名法 (snake_case)
                 const modelId = "gemini-1.5-flash";
-                const url = `https://generativelanguage.googleapis.com/v1/models/${modelId}:generateContent?key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "請分析此影像中的牆壁裂縫。" }, { inlineData: { mimeType: "image/jpeg", data: compressedBase64 } }] }],
-                        systemInstruction: { parts: [{ text: prompt }] },
-                        generationConfig: { 
-                            responseMimeType: "application/json",
+                        contents: [{ 
+                            parts: [
+                                { text: "請分析此影像中的牆壁裂縫。" }, 
+                                { inline_data: { mime_type: "image/jpeg", data: compressedBase64 } }
+                            ] 
+                        }],
+                        system_instruction: { 
+                            parts: [{ text: prompt }] 
+                        },
+                        generation_config: { 
+                            response_mime_type: "application/json",
                             temperature: 0.2
                         }
                     })
