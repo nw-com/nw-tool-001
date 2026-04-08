@@ -1,0 +1,387 @@
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牆壁裂縫自動分析儀 - 專業紅版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js" type="module"></script>
+    <style>
+        .active-tab { border-bottom: 3px solid #dc2626; color: #dc2626; }
+        .tab-btn { transition: all 0.2s ease; }
+        /* 避免歷史紀錄圖片太重，設定最大高度 */
+        .history-img { max-height: 150px; width: 100%; object-fit: cover; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col bg-white shadow-xl">
+        <!-- Header -->
+        <header class="bg-red-600 text-white p-6 shadow-md flex justify-between items-start">
+            <div>
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    牆壁裂縫分析系統
+                </h1>
+                <p class="text-red-100 text-xs mt-1 opacity-90">保存影像紀錄的結構評估工具</p>
+            </div>
+            <!-- Share Button -->
+            <button id="share-btn" class="p-2 bg-red-700 hover:bg-red-800 rounded-full transition-colors shadow-inner" title="分享至 LINE">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
+            <button id="tab-detect" class="flex-1 py-4 text-sm font-bold tab-btn active-tab">即時檢測</button>
+            <button id="tab-history" class="flex-1 py-4 text-sm font-bold tab-btn text-gray-500">歷史紀錄</button>
+            <button id="tab-standards" class="flex-1 py-4 text-sm font-bold tab-btn text-gray-500">等級說明</button>
+        </nav>
+
+        <!-- Content Area -->
+        <main class="flex-1 p-4 overflow-y-auto">
+            
+            <!-- Tab 1: Detection -->
+            <div id="view-detect">
+                <div class="bg-gray-50 rounded-2xl border-2 border-dashed border-red-200 p-8 text-center" id="drop-zone">
+                    <input type="file" id="file-input" accept="image/*" capture="camera" class="hidden">
+                    
+                    <div id="preview-container" class="hidden">
+                        <img id="preview-img" class="w-full h-64 object-cover rounded-xl mb-4 shadow-sm" alt="Preview">
+                        <button id="re-upload-btn" class="text-red-600 font-bold text-sm hover:underline flex items-center justify-center gap-1 mx-auto">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            重新拍攝
+                        </button>
+                    </div>
+
+                    <div id="upload-prompt" class="flex flex-col items-center">
+                        <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <button id="open-camera-btn" class="bg-red-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-red-200 active:scale-95 transition-transform">
+                            開啟相機拍攝
+                        </button>
+                        <p class="text-xs text-gray-400 mt-4">影像將連同分析結果一同保存於歷史紀錄</p>
+                    </div>
+                </div>
+
+                <button id="analyze-btn" class="w-full bg-gray-800 text-white font-bold py-4 rounded-xl mt-6 shadow-lg active:scale-95 transition-all hidden">
+                    AI 深度分析並儲存
+                </button>
+
+                <div id="status-msg" class="mt-4 text-center text-sm font-medium hidden"></div>
+
+                <div id="result-card" class="mt-6 bg-white rounded-2xl shadow-md p-6 hidden border border-red-50">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-bold text-gray-800">檢測報告</h2>
+                        <span id="result-grade" class="px-3 py-1 rounded-full text-xs font-black"></span>
+                    </div>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-gray-400">估計長度</span>
+                            <span id="result-length" class="font-bold"></span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-gray-400">估計寬度</span>
+                            <span id="result-width" class="font-bold"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400 block mb-2">處理建議</span>
+                            <div id="result-suggestion" class="bg-red-50 text-red-900 p-4 rounded-xl leading-relaxed italic"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: History -->
+            <div id="view-history" class="hidden">
+                <div id="history-empty" class="text-center py-20 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    尚無歷史檢測紀錄
+                </div>
+                <div id="history-list" class="space-y-6">
+                    <!-- History items will be injected here -->
+                </div>
+            </div>
+
+            <!-- Tab 3: Standards -->
+            <div id="view-standards" class="hidden">
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center border-b pb-2">
+                            <span class="w-2 h-6 bg-red-600 mr-2 rounded-full"></span>
+                            裂縫危險分級標準
+                        </h3>
+                        <div class="space-y-5">
+                            <div class="flex gap-4">
+                                <div class="shrink-0 w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-700 font-bold">1級</div>
+                                <div>
+                                    <h4 class="font-bold text-green-700">表面細裂縫 (< 0.1mm)</h4>
+                                    <p class="text-sm text-gray-600 mt-1">漆面乾縮所致，不影響結構。</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4 border-t pt-5">
+                                <div class="shrink-0 w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold">2級</div>
+                                <div>
+                                    <h4 class="font-bold text-yellow-700">深層觀察縫 (0.1 - 0.3mm)</h4>
+                                    <p class="text-sm text-gray-600 mt-1">溫差收縮引起，建議定期追蹤。</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4 border-t pt-5">
+                                <div class="shrink-0 w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-700 font-bold">3級</div>
+                                <div>
+                                    <h4 class="font-bold text-orange-700">需修復裂縫 (0.3 - 2.0mm)</h4>
+                                    <p class="text-sm text-gray-600 mt-1">恐致鋼筋鏽蝕，建議專業修補。</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4 border-t pt-5">
+                                <div class="shrink-0 w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center text-red-700 font-bold">4級</div>
+                                <div>
+                                    <h4 class="font-bold text-red-700">嚴重危險縫 (> 2.0mm)</h4>
+                                    <p class="text-sm text-gray-600 mt-1 font-medium text-red-600">涉及結構性損壞，請立即鑑定。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="p-4 bg-gray-50 border-t border-gray-100 text-center">
+            <p class="text-[10px] text-gray-400">© 2024 結構安全 AI 分析系統 | 影像已保存於雲端</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'wall-crack-app-img';
+
+        const apiKey = ""; 
+        let user = null;
+        let base64Image = "";
+
+        // UI Elements
+        const fileInput = document.getElementById('file-input');
+        const openCameraBtn = document.getElementById('open-camera-btn');
+        const previewContainer = document.getElementById('preview-container');
+        const previewImg = document.getElementById('preview-img');
+        const uploadPrompt = document.getElementById('upload-prompt');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const resultCard = document.getElementById('result-card');
+        const statusMsg = document.getElementById('status-msg');
+        const reUploadBtn = document.getElementById('re-upload-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const tabDetect = document.getElementById('tab-detect');
+        const tabHistory = document.getElementById('tab-history');
+        const tabStandards = document.getElementById('tab-standards');
+        const viewDetect = document.getElementById('view-detect');
+        const viewHistory = document.getElementById('view-history');
+        const viewStandards = document.getElementById('view-standards');
+        const historyList = document.getElementById('history-list');
+        const historyEmpty = document.getElementById('history-empty');
+
+        // --- AUTH ---
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) setupHistoryListener();
+        });
+
+        // --- SHARE ---
+        shareBtn.onclick = () => {
+            const text = "我正在使用【牆壁裂縫自動分析儀】記錄居家結構安全！";
+            const url = window.location.href;
+            window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text + "\n" + url)}`, '_blank');
+        };
+
+        // --- TABS ---
+        function switchTab(target) {
+            [tabDetect, tabHistory, tabStandards].forEach(t => t.classList.remove('active-tab', 'text-red-600'));
+            [tabDetect, tabHistory, tabStandards].forEach(t => t.classList.add('text-gray-500'));
+            [viewDetect, viewHistory, viewStandards].forEach(v => v.classList.add('hidden'));
+
+            if (target === 'detect') {
+                tabDetect.classList.add('active-tab');
+                viewDetect.classList.remove('hidden');
+            } else if (target === 'history') {
+                tabHistory.classList.add('active-tab');
+                viewHistory.classList.remove('hidden');
+            } else if (target === 'standards') {
+                tabStandards.classList.add('active-tab');
+                viewStandards.classList.remove('hidden');
+            }
+        }
+        tabDetect.onclick = () => switchTab('detect');
+        tabHistory.onclick = () => switchTab('history');
+        tabStandards.onclick = () => switchTab('standards');
+
+        // --- CAMERA ---
+        openCameraBtn.onclick = () => fileInput.click();
+        reUploadBtn.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                base64Image = ev.target.result.split(',')[1];
+                previewImg.src = ev.target.result;
+                previewContainer.classList.remove('hidden');
+                uploadPrompt.classList.add('hidden');
+                analyzeBtn.classList.remove('hidden');
+                resultCard.classList.add('hidden');
+                statusMsg.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // --- AI ---
+        analyzeBtn.onclick = async () => {
+            if (!base64Image || !user) return;
+            showStatus("AI 正在分析影像並上傳紀錄...", "text-red-600");
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerText = "正在儲存影像與報告...";
+
+            const prompt = `你是一位專業結構技師。分析照片中的牆壁裂縫並回傳 JSON：
+            {
+                "length": "數字公分",
+                "width": "數字公釐",
+                "grade": "一級/二級/三級/四級",
+                "grade_color": "green/yellow/orange/red",
+                "suggestion": "建議內容"
+            }`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: "請分析此裂縫。" }, { inlineData: { mimeType: "image/png", data: base64Image } }] }],
+                        systemInstruction: { parts: [{ text: prompt }] },
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+                const data = await response.json();
+                const result = JSON.parse(data.candidates[0].content.parts[0].text);
+                
+                // 將 base64Image 也存進 Firestore
+                await saveRecord({ ...result, imageData: base64Image });
+                displayResult(result);
+            } catch (error) {
+                showStatus("發生錯誤，請重新再試。", "text-red-500");
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerText = "開始 AI 自動分析";
+            }
+        };
+
+        async function saveRecord(data) {
+            if (!user) return;
+            const ref = collection(db, 'artifacts', appId, 'users', user.uid, 'history');
+            await addDoc(ref, { ...data, timestamp: serverTimestamp() });
+        }
+
+        function setupHistoryListener() {
+            if (!user) return;
+            const q = collection(db, 'artifacts', appId, 'users', user.uid, 'history');
+            onSnapshot(q, (snapshot) => {
+                const docs = [];
+                snapshot.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+                docs.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                renderHistory(docs);
+            }, (err) => console.error(err));
+        }
+
+        function renderHistory(docs) {
+            if (docs.length === 0) {
+                historyEmpty.classList.remove('hidden');
+                historyList.innerHTML = "";
+                return;
+            }
+            historyEmpty.classList.add('hidden');
+            historyList.innerHTML = docs.map(doc => {
+                const date = doc.timestamp ? new Date(doc.timestamp.seconds * 1000).toLocaleString() : '處理中...';
+                const colorMap = {
+                    red: 'text-red-600 bg-red-50 border-red-200',
+                    orange: 'text-orange-600 bg-orange-50 border-orange-200',
+                    yellow: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+                    green: 'text-green-600 bg-green-50 border-green-200'
+                };
+                const colorClass = colorMap[doc.grade_color] || colorMap.yellow;
+                // 檢查是否有圖片資料
+                const imgHtml = doc.imageData 
+                    ? `<img src="data:image/png;base64,${doc.imageData}" class="history-img rounded-t-xl" alt="裂縫紀錄">`
+                    : `<div class="h-20 bg-gray-100 flex items-center justify-center text-xs text-gray-400 rounded-t-xl">無影像資料</div>`;
+                
+                return `
+                    <div class="bg-white border rounded-xl shadow-sm overflow-hidden border-gray-200">
+                        ${imgHtml}
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] text-gray-400 font-mono">${date}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${colorClass.split(' ')[0]} ${colorClass.split(' ')[1]} border">
+                                    ${doc.grade}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-3">
+                                <div class="text-xs font-bold text-gray-700">長度: ${doc.length}</div>
+                                <div class="text-xs font-bold text-gray-700 text-right">寬度: ${doc.width}</div>
+                            </div>
+                            <p class="text-[11px] text-gray-600 leading-relaxed border-t pt-2 border-gray-50 italic">${doc.suggestion}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayResult(result) {
+            statusMsg.classList.add('hidden');
+            resultCard.classList.remove('hidden');
+            document.getElementById('result-length').innerText = result.length;
+            document.getElementById('result-width').innerText = result.width;
+            document.getElementById('result-suggestion').innerText = result.suggestion;
+            const gradeEl = document.getElementById('result-grade');
+            gradeEl.innerText = result.grade;
+            const colors = { green: "bg-green-100 text-green-700", yellow: "bg-yellow-100 text-yellow-700", orange: "bg-orange-100 text-orange-700", red: "bg-red-600 text-white" };
+            gradeEl.className = `px-3 py-1 rounded-full text-xs font-black ${colors[result.grade_color] || colors.yellow}`;
+            resultCard.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showStatus(msg, colorClass) {
+            statusMsg.innerText = msg;
+            statusMsg.className = `mt-4 text-center text-sm font-medium ${colorClass}`;
+            statusMsg.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
